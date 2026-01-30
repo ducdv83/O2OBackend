@@ -184,10 +184,11 @@ export class BookingsService {
       throw new BadRequestException('Booking cannot be cancelled');
     }
 
+    const wasScheduled = booking.status === BookingStatus.SCHEDULED;
     booking.status = BookingStatus.CANCELLED;
 
     // Update job status back to OPEN if cancelled before start
-    if (booking.status === BookingStatus.SCHEDULED) {
+    if (wasScheduled) {
       booking.job.status = JobStatus.OPEN;
       await this.jobsRepository.save(booking.job);
     }

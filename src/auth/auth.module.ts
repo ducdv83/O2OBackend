@@ -7,7 +7,6 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { OtpModule } from '../otp/otp.module';
-import jwtConfig from '../config/jwt.config';
 
 @Module({
   imports: [
@@ -17,7 +16,11 @@ import jwtConfig from '../config/jwt.config';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        // Provide a dev-safe fallback to avoid runtime crash if env is missing.
+        secret: configService.get<string>(
+          'JWT_SECRET',
+          'your-super-secret-jwt-key-change-in-production',
+        ),
         signOptions: {
           expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d'),
         },

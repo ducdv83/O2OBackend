@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { Job } from '../jobs/entities/job.entity';
+import { Job, JobStatus } from '../jobs/entities/job.entity';
 import { CareproProfile } from '../carepro/entities/carepro-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { FitScoreAlgorithm, FitScoreResult } from './algorithms/fitscore.algorithm';
@@ -111,7 +111,7 @@ export class MatchingService {
 
     // Get open jobs
     const jobs = await this.jobsRepository.find({
-      where: { status: 'OPEN' },
+      where: { status: JobStatus.OPEN },
       relations: ['client'],
     });
 

@@ -176,7 +176,8 @@ export class JobsService {
       throw new ForbiddenException('You can only delete your own jobs');
     }
 
-    if (job.status === JobStatus.BOOKED || job.status === JobStatus.IN_PROGRESS) {
+    // JobStatus does not include IN_PROGRESS; "active booking" is represented by BOOKED.
+    if (job.status === JobStatus.BOOKED) {
       throw new BadRequestException('Cannot delete job with active booking');
     }
 

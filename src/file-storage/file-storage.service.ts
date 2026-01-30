@@ -2,13 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 
+type UploadedFile = {
+  originalname: string;
+  // Optional fields if you later implement real storage
+  mimetype?: string;
+  size?: number;
+  buffer?: Buffer;
+};
+
 @Injectable()
 export class FileStorageService {
   private readonly logger = new Logger(FileStorageService.name);
 
   constructor(private configService: ConfigService) {}
 
-  async uploadFile(file: Express.Multer.File, folder: string = 'uploads'): Promise<string> {
+  async uploadFile(file: UploadedFile, folder: string = 'uploads'): Promise<string> {
     const provider = this.configService.get<string>('STORAGE_PROVIDER', 'local');
 
     if (provider === 'local') {

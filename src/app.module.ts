@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WinstonModule } from 'nest-winston';
@@ -27,8 +26,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AdminModule } from './admin/admin.module';
 import { OtpModule } from './otp/otp.module';
 import { FileStorageModule } from './file-storage/file-storage.module';
-import { databaseConfig } from './config/database.config';
 import { redisConfig } from './config/redis.config';
+
+const ENABLE_REDIS_CACHE = process.env.ENABLE_REDIS_CACHE === 'true';
 
 @Module({
   imports: [
@@ -41,10 +41,12 @@ import { redisConfig } from './config/redis.config';
     // Database
     DatabaseModule,
 
-    // Cache (Redis) - Optional, can be disabled if Redis is not available
-    ...(process.env.REDIS_HOST
-      ? [CacheModule.registerAsync(redisConfig())]
-      : [CacheModule.register({ ttl: 300 })]),
+    // Cache
+    // Default: in-memory cache (no Redis needed).
+    // To enable Redis later, set: ENABLE_REDIS_CACHE=true and provide REDIS_HOST/REDIS_PORT(/REDIS_PASSWORD).
+    ...(ENABLE_REDIS_CACHE
+      ? [CacheModule.registerAsync({ isGlobal: true, ...redisConfig() })]
+      : [CacheModule.register({ ttl: 300, isGlobal: true })]),
 
     // Scheduler
     ScheduleModule.forRoot(),
