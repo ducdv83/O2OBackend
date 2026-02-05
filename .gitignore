@@ -34,9 +34,9 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# Environment variables
+# Environment variables (keep .env and .env.*.local private; .env.local is allowed to be committed)
 .env
-.env.local
+# .env.local  ← đã bỏ ignore để có thể đẩy lên Git (xem cảnh báo bên dưới)
 .env.*.local
 
 # TypeScript
