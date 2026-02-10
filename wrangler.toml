@@ -4,7 +4,7 @@ compatibility_date = "2026-01-30"
 
 # Public upstream URL (not a secret)
 [vars]
-UPSTREAM_URL = "https://alfred-laws-member-must.trycloudflare.com"
+UPSTREAM_URL = "https://collaborative-traveler-workflow-happens.trycloudflare.com"
 
 # NOTE:
 # This deploys a Cloudflare Worker "gateway/proxy", NOT the NestJS app itself.
