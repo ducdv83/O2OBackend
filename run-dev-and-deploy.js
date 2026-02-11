@@ -168,9 +168,13 @@ async function main() {
   }
 
   console.log('\n========================================');
-  console.log('Hoàn tất. NestJS và Tunnel vẫn chạy nền.');
+  console.log('Hoàn tất. NestJS và Tunnel đang chạy (script giữ chạy để backend không tắt).');
   console.log('Swagger qua Worker: https://o2o-backend-gateway.o2ocare-sys.workers.dev/api/docs');
   console.log('========================================\n');
+  // Báo cho run-all-deploy.js biết deploy xong, có thể khởi động Expo. Script không thoát để NestJS vẫn chạy.
+  console.log('<<<DEPLOY_READY>>>');
+  // Giữ process sống (NestJS là process con nên vẫn chạy)
+  setInterval(() => {}, 60000);
 }
 
 main().catch((err) => {
