@@ -7,6 +7,12 @@
 const { spawn, spawnSync, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+
+// Windows: không tạo cửa sổ CMD mới khi spawn process con
+const CREATE_NO_WINDOW = 0x08000000;
+const spawnOpts = (base) =>
+  os.platform() === 'win32' ? { ...base, windowsHide: true, creationFlags: CREATE_NO_WINDOW } : { ...base };
 
 const PROJECT_ROOT = process.cwd();
 const WRANGLER_TOML = path.join(PROJECT_ROOT, 'wrangler.toml');
@@ -34,13 +40,12 @@ function sleep(ms) {
 function captureTunnelUrl(timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
     console.log('Đang chạy cloudflared (đọc cả stdout + stderr)...');
-    const child = spawn(CLOUDFLARED_EXE, ['tunnel', '--url', 'http://localhost:3000'], {
+    const child = spawn(CLOUDFLARED_EXE, ['tunnel', '--url', 'http://localhost:3000'], spawnOpts({
       cwd: PROJECT_ROOT,
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
-      windowsHide: true,
-    });
+    }));
 
     let buffer = '';
 
@@ -106,15 +111,14 @@ async function main() {
   console.log('Project root:', PROJECT_ROOT);
   console.log('cloudflared:', CLOUDFLARED_EXE);
 
-  // 1. Start dev (không mở cửa sổ, log ra cùng console có prefix; process chạy nền)
+  // 1. Start dev (không mở cửa sổ CMD, log ra cùng console có prefix; process chạy nền)
   log('1/3', 'Khởi động NestJS (start:dev)');
-  const dev = spawn('npm', ['run', 'start:dev'], {
+  const dev = spawn('npm', ['run', 'start:dev'], spawnOpts({
     cwd: PROJECT_ROOT,
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: true,
-    windowsHide: true,
-  });
+  }));
   dev.stdout.setEncoding('utf8');
   dev.stderr.setEncoding('utf8');
   dev.stdout.on('data', (chunk) => {
@@ -154,11 +158,11 @@ async function main() {
 
   // 3. Deploy
   log('3/3', 'Deploy lên Cloudflare Workers');
-  const deployResult = spawnSync('npx', ['wrangler', 'deploy'], {
+  const deployResult = spawnSync('npx', ['wrangler', 'deploy'], spawnOpts({
     cwd: PROJECT_ROOT,
     stdio: 'inherit',
     shell: true,
-  });
+  }));
   if (deployResult.status !== 0) {
     console.error('wrangler deploy kết thúc với mã lỗi:', deployResult.status);
   }
