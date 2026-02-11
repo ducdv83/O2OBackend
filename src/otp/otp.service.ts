@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SmsProvider } from './providers/sms.provider';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ interface OtpRequest {
 
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
   private otpStore: Map<string, OtpRequest> = new Map();
   private phoneToRequestId: Map<string, string> = new Map();
 
@@ -21,6 +22,9 @@ export class OtpService {
   ) {}
 
   async generateOtp(phone: string): Promise<string> {
+    const fixedOtpRaw = this.configService.get<string>('OTP_FIXED');
+    const fixedOtp = fixedOtpRaw ? fixedOtpRaw.trim() : '';
+
     // Rate limiting check
     const existingRequestId = this.phoneToRequestId.get(phone);
     if (existingRequestId) {
@@ -29,9 +33,13 @@ export class OtpService {
         const timeLeft = Math.floor(
           (existingRequest.expiresAt.getTime() - new Date().getTime()) / 1000,
         );
+        // Dev: reuse active request when OTP is fixed
+        if (fixedOtp) {
+          return existingRequestId;
+        }
         if (timeLeft > 240) {
           // Can only request new OTP after 1 minute
-          throw new Error('Please wait before requesting a new OTP');
+          throw new BadRequestException('Please wait before requesting a new OTP');
         }
       }
     }
@@ -41,7 +49,10 @@ export class OtpService {
     const otpExpiresIn = this.configService.get<number>('OTP_EXPIRES_IN', 300); // 5 minutes
 
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp =
+      fixedOtp && fixedOtp.length > 0
+        ? fixedOtp
+        : Math.floor(100000 + Math.random() * 900000).toString();
 
     const expiresAt = new Date();
     expiresAt.setSeconds(expiresAt.getSeconds() + otpExpiresIn);
@@ -55,6 +66,9 @@ export class OtpService {
 
     this.otpStore.set(requestId, otpRequest);
     this.phoneToRequestId.set(phone, requestId);
+
+    // Log OTP for dev visibility
+    this.logger.log(`[OTP] phone=${phone} requestId=${requestId} otp=${otp}`);
 
     // Send OTP via SMS (mock in development)
     await this.smsProvider.sendOtp(phone, otp);

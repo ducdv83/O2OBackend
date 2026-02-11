@@ -14,17 +14,28 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
-  const corsOrigin = configService.get<string>('CORS_ORIGIN', 'http://localhost:3000');
+  const corsOrigin = configService.get<string>(
+    'CORS_ORIGIN',
+    'http://localhost:3000,exp://192.168.1.11:8081',
+  );
 
   // Use Winston logger
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
+  // Log all incoming requests
+  app.use((req: any, res: any, next: any) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - IP: ${req.ip || req.connection.remoteAddress}`);
+    next();
+  });
+
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  // CORS
+  // CORS - Allow all origins in development for mobile testing
   app.enableCors({
-    origin: corsOrigin.split(','),
+    origin: process.env.NODE_ENV === 'production' 
+      ? corsOrigin.split(',') 
+      : true,
     credentials: true,
   });
 
@@ -56,8 +67,8 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(port);
-  console.log(`🚀 Application is running on: http://localhost:${port}`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`🚀 Application is running on: http://0.0.0.0:${port}`);
   console.log(`📚 Swagger documentation: http://localhost:${port}/api/docs`);
 }
 
