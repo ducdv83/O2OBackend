@@ -15,6 +15,8 @@ const CLOUDFLARED_EXE = process.env.CLOUDFLARED_EXE || 'E:\\Datnd15\\Tool\\cloud
 const TUNNEL_URL_REGEX = /https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/g;
 const UPSTREAM_URL_REGEX = /(UPSTREAM_URL\s*=\s*)"[^"]*"/;
 
+const PREFIX_DEV = '[NestJS]';
+
 function log(step, msg) {
   console.log(`\n========================================`);
   console.log(`[${step}] ${msg}`);
@@ -37,7 +39,7 @@ function captureTunnelUrl(timeoutMs = 45000) {
       detached: true,
       stdio: ['ignore', 'pipe', 'pipe'],
       shell: false,
-      windowsHide: false,
+      windowsHide: true,
     });
 
     let buffer = '';
@@ -104,16 +106,26 @@ async function main() {
   console.log('Project root:', PROJECT_ROOT);
   console.log('cloudflared:', CLOUDFLARED_EXE);
 
-  // 1. Start dev (detached)
+  // 1. Start dev (không mở cửa sổ, log ra cùng console có prefix; process chạy nền)
   log('1/3', 'Khởi động NestJS (start:dev)');
   const dev = spawn('npm', ['run', 'start:dev'], {
     cwd: PROJECT_ROOT,
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'pipe', 'pipe'],
     shell: true,
+    windowsHide: true,
   });
+  dev.stdout.setEncoding('utf8');
+  dev.stderr.setEncoding('utf8');
+  dev.stdout.on('data', (chunk) => {
+    String(chunk).split(/\r?\n/).filter(Boolean).forEach((line) => console.log(`${PREFIX_DEV} ${line}`));
+  });
+  dev.stderr.on('data', (chunk) => {
+    String(chunk).split(/\r?\n/).filter(Boolean).forEach((line) => console.log(`${PREFIX_DEV} ${line}`));
+  });
+  dev.on('error', (err) => console.error(PREFIX_DEV, 'Lỗi:', err.message));
   dev.unref();
-  console.log('Đã mở process start:dev (chạy nền). Đợi ~20s...');
+  console.log('Đã khởi động start:dev (log bên dưới). Đợi ~20s...');
   await sleep(20000);
 
   // 2. Cloudflare Tunnel + bắt URL
